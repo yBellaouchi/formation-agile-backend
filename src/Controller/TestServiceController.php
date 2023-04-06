@@ -7,6 +7,10 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use App\Service\VtigerService;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use Exception;
+
 
 class TestServiceController extends AbstractController
 {
@@ -14,30 +18,62 @@ class TestServiceController extends AbstractController
      * @Route("/test/service", name="app_test_service")
      */
     public function getChallenge(VtigerService $VtigerService): Response
-    {      
-        dd($VtigerService->getChallenge());
-        return $this->render('test_service/index.html.twig', [
-            'controller_name' => 'TestServiceController',
-        ]);
+    {    
+        
+        try {
+            $response = new JsonResponse();
+            $challenge = $VtigerService->getChallenge();
+            $response->setData(["challenge" => $challenge]);
+            return $response;
+        }
+        catch (Exception $exception) {
+            $response->setStatusCode(500);
+            $response->setData(["message" => $exception->getMessage()]);
+            return $response;
+        }
+        
     }
     /**
      * @Route("/test/service/login",name="app_test_login")
      */
     public function login(VtigerService $VtigerService): Response
     {
-        dd($VtigerService->login());
-        return $this->render('test_service/index.html.twig', [
-            'controller_name' => 'TestServiceController',
-        ]);
+        try {
+            $response = new JsonResponse();
+            $token = $VtigerService->login();
+            $response->setData(["token" => $token]);
+            return $response;
+        }
+        catch (Exception $exception){
+            $response->setStatusCode(500);
+            $response->setData(["message" => $exception->getMessage()]);
+            return $response;
+        } 
     }
     /**
      * @Route("/test/service/retrieve",name="app_test_retreive")
      */
     public function retrieveById(VtigerService $VtigerService, Request $request): Response
     {
+        try {
+        $response = new JsonResponse();
         $idElement = $request->get('id');
-        $elment = $VtigerService->retrieveById($idElement);
-        return $this->json($elment);
+        $elementType = $request->get('elementType');
+    
+        $data = json_decode($request->getContent(), true);
+        // dd($data);
+        $elementType = $data['elementType'];
+        // dd($elementType);
+        $elment = $VtigerService->retrieveById($idElement, $elementType);
+        $response = new JsonResponse();
+        $response->seData(['element' => $element]);
+            return $response;
+        }
+        catch (Exception $exception){
+            $response->setStatusCode(500);
+            $response->setData(["message" => $exception->getMessage()]);
+            return $response;
+        } 
     }
 
     /**
@@ -45,64 +81,131 @@ class TestServiceController extends AbstractController
      */
     public function describe(VtigerService $VtigerService, Request $request): Response
     {
-        dd($VtigerService->convertNameToLabel($VtigerService->retrieveById("57x26452"),$VtigerService->describe()));
-        dd($VtigerService->describe());
-        return $this->render('test_service/index.html.twig', [
-            'controller_name' => 'TestServiceController',
-        ]);
+        try
+         {
+        $data = json_decode($request->getContent(), true);
+        $elementType =$request->get('elementType');
+        $res = $VtigerService->describe($elementType);
+        $response = new JsonResponse($res);
+        // $response->setData([''])
+            return $response;
+        //
+        }  
+        catch (Exception $exception) {
+            $response->setStatusCode(500);
+            $response->setData(["message" => $exception->getMessage()]);
+            return $response;
+        } 
     }
+
     /**
      * @Route("/test/service/create",name="app_test_create")
      */
     public function create(VtigerService $VtigerService, Request $request)
     {
-        // dd($VtigerService->convertNameToLabel($VtigerService->retrieveById("57x26452"),$VtigerService->describe()));
+        try {
         $idElement = $request->get('id');
         $data = json_decode($request->getContent(), true);
-        // dd($data);
         $elementType = $data['elementType'];
         $data = $data['data'];
-        // dd($data,$elementType)
-        $res = $VtigerService->create($elementType,$data);
-      
-        return $this->json($res);
+        $res = $VtigerService->create($elementType, $data);
+        
+        $response = new JsonResponse();
+        $response->setData(["project added" => $res]);
+        return $response;
+        }
+        catch (Exception $exception) {
+            $response->setStatusCode(500);
+            $response->setData(["message" => $exception->getMessage()]);
+            return $response;
+        }
+
     }
 /**
      * @Route("/test/service/getOperations", name="app_test_get_operations")
      */
     public function getOperation(VtigerService $VtigerService): Response
     {
-        dd($VtigerService->getOperations());
-        return $this->render('test_service/index.html.twig', [
-            'controller_name' => 'TestServiceController',
-        ]);
+        try{
+            $operations=$VtigerService->getOperations();
+            $response = new JsonResponse();
+            $response->setData(["operations" => $operations]);
+            return $response;
+        }
+        catch (Exception $exception){
+            $response->setStatusCode(500);
+            $response->setData(["message" => $exception->getMessage()]);
+            return $response;
+        }
+
     }
     /**
      * @Route("/test/service/edit", name="app_test_edit")
      */
-    public function Edit(VtigerService $VtigerService, Request $request): Response
+    public function edit(VtigerService $VtigerService, Request $request): Response
     {
-       
+        try{
         $data = json_decode($request->getContent(), true);
         $elementType = $data['elementType'];
         
         $data = $data['data'];
         
-        $res = $VtigerService->Edit($elementType, $data);
-        return $this->json($res);
+        $res = $VtigerService->edit($elementType, $data);
+        
+        $response = new JsonResponse();
+            $response->setData(["project edited" => $res]);
+            return $response;
+        }
+        catch (Exception $exception){
+            $response->setStatusCode(500);
+            $response->setData(["message" => $exception->getMessage()]);
+            return $response;
+        }
+        
     }
     /**
      * @Route("/test/service/delete", name="app_test_delete")
      */
     public function Delete(VtigerService $VtigerService, Request $request): Response
     { 
-        $data = json_decode($request->getContent(), true);
-        $idElement = $request->get('id');
-        
-        $data = $data['data'];
-        
-        $res = $VtigerService->delete($idElement, $data);
-        return $this->json($res);
+        try{
+            $data = json_decode($request->getContent(), true);
+            $idElement = $request->get('id');
+
+            $res = $VtigerService->delete($idElement);
+            $response = new JsonResponse();
+            $response->setData(["project deleted " => $res]);
+            return $response;
+        }
+        catch (Exception $exception){
+            $response->setStatusCode(500);
+            $response->setData(["message" => $exception->getMessage()]);
+            return $response;
+        }
     }
+   /**
+     * @Route("/test/service/get-all", name="app_test_delete")
+     */
+    public function getAll(VtigerService $VtigerService, Request $request): Response
+    { 
+        try{
+             $response = new JsonResponse();
+              $query = urlencode("SELECT * FROM Projets;");
+              $array=(array)$request;
+            //   dd($request->get('query'));
+            //  $query = $request->set('query',urlencode($query));
+            $all = $VtigerService->getAll($query);
+            
+           
+            $response->setData(["all projects " => $all]);
+            return $response;
+        }
+        catch (Exception $exception){
+            $response->setStatusCode(500);
+            $response->setData(["message" => $exception->getMessage()]);
+            return $response;
+        }
+
+}
 
 }
