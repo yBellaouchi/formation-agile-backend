@@ -244,6 +244,7 @@ class VtigerService{
 
      public function getAll($elementType){
         $query = "SELECT * FROM {$elementType} LIMIT 10;";
+        // $query = "SELECT * FROM {$elementType} WHERE id = '57x26835' ;";
         $response = $this->client->request(
             'GET',
             $this->baseUrl, 
@@ -258,11 +259,6 @@ class VtigerService{
             $response = json_decode($response->getContent(), true);
             if($response['success']) {
                 $elements = $response['result'];
-                // foreach($elements as $key=>$element){
-                //     $elements[$key] = $this->convertNameToLabel($elementType, $element);
-                //   }
-                //   return $elements;
-
                 $elements = array_map(function($element) {
                     return $this->convertNameToLabel('Projets', $element);
                 }, $elements);
