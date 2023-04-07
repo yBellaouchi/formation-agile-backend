@@ -10,16 +10,15 @@ use App\Service\VtigerService;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Exception;
-
-
+use Symfony\Component\Dotenv\Dotenv;
+ 
 class TestServiceController extends AbstractController
 {
     /**
      * @Route("/test/service", name="app_test_service")
      */
     public function getChallenge(VtigerService $VtigerService): Response
-    {    
-        
+    {  
         try {
             $response = new JsonResponse();
             $challenge = $VtigerService->getChallenge();
@@ -59,14 +58,16 @@ class TestServiceController extends AbstractController
         $response = new JsonResponse();
         $idElement = $request->get('id');
         $elementType = $request->get('elementType');
-    
+    //   dd($elementType);
         $data = json_decode($request->getContent(), true);
         // dd($data);
-        $elementType = $data['elementType'];
+        // $elementType = $data['elementType'];
         // dd($elementType);
-        $elment = $VtigerService->retrieveById($idElement, $elementType);
+        
+        $element = $VtigerService->retrieveById($idElement, $elementType);
+        $element = $VtigerService->convertNameToLabel($elementType, $element);
         $response = new JsonResponse();
-        $response->seData(['element' => $element]);
+        $response->setData(['element' => $element]);
             return $response;
         }
         catch (Exception $exception){
@@ -169,7 +170,6 @@ class TestServiceController extends AbstractController
     public function Delete(VtigerService $VtigerService, Request $request): Response
     { 
         try{
-            $data = json_decode($request->getContent(), true);
             $idElement = $request->get('id');
 
             $res = $VtigerService->delete($idElement);
@@ -189,12 +189,10 @@ class TestServiceController extends AbstractController
     public function getAll(VtigerService $VtigerService, Request $request): Response
     { 
         try{
-             $response = new JsonResponse();
-              $query = urlencode("SELECT * FROM Projets;");
-              $array=(array)$request;
-            //   dd($request->get('query'));
-            //  $query = $request->set('query',urlencode($query));
-            $all = $VtigerService->getAll($query);
+            $response = new JsonResponse();
+            $elementType = $request->get('elementType');
+            
+             $all = $VtigerService->getAll($elementType);
             
            
             $response->setData(["all projects " => $all]);

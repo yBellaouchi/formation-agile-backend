@@ -18,12 +18,12 @@ class VtigerService{
     public function __construct(HttpClientInterface $client)
     {
         $this->client = $client;
-        $this->baseUrl = "https://admin.a-gile.dev/webservice.php";
-        $this->username ="youness.bellaouchi@a-gile.com";
-        $this->accessKey ="5xq3wNkxNuKq5orC";
+        $this->baseUrl = $_SERVER['BASE_URL'];
+        $this->username = $_SERVER['USER_NAME'];
+        $this->accessKey = $_SERVER['ACCESS_KEY'];
 
-        $this->sessionName ="7cbc81c2642ae31baee82";
-        $this->id ="57x26452";
+        $this->sessionName = $_SERVER['SESSION_NAME'];
+        $this->id = $_SERVER['ID'];
         
     }
     public function getChallenge()
@@ -83,7 +83,9 @@ class VtigerService{
         $response = json_decode($response->getContent(), true);
         if($response['success'])
          {
-            $res = $this->convertNameToLabel($elementType, $response['result']);
+            // dd($elementType);
+            $res = $response['result'];
+            // $res = $this->convertNameToLabel($elementType, $response['result']);
             return $res;
         }
         throw new Exception($response['message']);  
@@ -116,9 +118,12 @@ class VtigerService{
             $keys = array_keys($element);
             $result = [];
             $fieldsDesc = $this->describe($elementType);
+            // dd($element);
             // dd($fieldsDesc);
+
             foreach($fieldsDesc as $fieldDesc)
             {
+                // dd($fieldDesc);
                 $x = array_search($fieldDesc['name'], $keys);
                 if($x !== false) 
                 {
@@ -129,10 +134,9 @@ class VtigerService{
            return $result;
         }
 
-        public function convertLabelToName($obj)
+        public function convertLabelToName($obj,$elementType)
         {
-
-            $describes = $this->describe();
+            $describes = $this->describe($elementType);
 
             $keys = array_keys($obj);  
             $result = [];
@@ -165,7 +169,7 @@ class VtigerService{
                     'body' => [
                         'operation' => 'create',
                         'sessionName'=> $this->login(),
-                        'element' => json_encode($this->convertLabelToName($obj), true),
+                        'element' => json_encode($this->convertLabelToName($obj,$elementType), true),
                         'elementType' => $elementType
                         ]
                 ]
@@ -205,7 +209,7 @@ class VtigerService{
                         'body' => [
                             'operation' => 'update',
                             'sessionName'=> $this->login(),
-                            'element' => json_encode($this->convertLabelToName($obj), true)],
+                            'element' => json_encode($this->convertLabelToName($obj,$elementType), true)],
                     ]
                 );
 
@@ -238,9 +242,8 @@ class VtigerService{
              throw new Exception($response['message']);           
      }
 
-     public function getAll($query){
-        
-        // dd($query);
+     public function getAll($elementType){
+        $query = "SELECT * FROM {$elementType} LIMIT 10;";
         $response = $this->client->request(
             'GET',
             $this->baseUrl, 
@@ -252,10 +255,18 @@ class VtigerService{
                         ]
                 ]
             );
-        $response = json_decode($response->getContent(), true);
-         
+            $response = json_decode($response->getContent(), true);
             if($response['success']) {
-                return $response; 
+                $elements = $response['result'];
+                // foreach($elements as $key=>$element){
+                //     $elements[$key] = $this->convertNameToLabel($elementType, $element);
+                //   }
+                //   return $elements;
+
+                $elements = array_map(function($element) {
+                    return $this->convertNameToLabel('Projets', $element);
+                }, $elements);
+                return $elements;
             }
              throw new Exception($response['message']);   
      }
