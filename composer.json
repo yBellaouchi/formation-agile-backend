@@ -20,6 +20,7 @@
         "oneup/flysystem-bundle": "^3",
         "phpoffice/phpspreadsheet": "^1.23",
         "phpoffice/phpword": "^0.18.3",
+        "predis/predis": "^2.1",
         "sensio/framework-extra-bundle": "^6.2",
         "symfony/config": "5.4.*",
         "symfony/console": "5.4.*",

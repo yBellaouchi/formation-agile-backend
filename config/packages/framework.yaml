@@ -11,7 +11,9 @@ framework:
         cookie_secure: auto
         cookie_samesite: lax
         storage_factory_id: session.storage.factory.native
-
+    ache:
+        app: cache.adapter.redis
+        default_redis_provider: "redis://localhost"
     #esi: true
     #fragments: true
     php_errors:

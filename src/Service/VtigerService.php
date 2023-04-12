@@ -28,6 +28,7 @@ class VtigerService{
     }
     public function getChallenge()
     {
+        // $cache = $this->get('cache.app');
         $response = $this->client->request(
             'GET',
             $this->baseUrl,
@@ -137,6 +138,7 @@ class VtigerService{
         public function convertLabelToName($obj,$elementType)
         {
             $describes = $this->describe($elementType);
+            // dd($describes);
 
             $keys = array_keys($obj);  
             $result = [];
@@ -144,16 +146,12 @@ class VtigerService{
             foreach ($describes as $describe)
             { 
                $label = $describe['label'];
-               $x = array_search($label,$keys);
+               $x = array_search($label,$keys);  
                if($x !== false)
-               {
-               {
                {                       
                 $name = $describe['name'];
                 $result[$name] = $obj[$label];
-               }
-            }
-            }
+               }    
             //  dd($result);
              }
             //  dd($result);
@@ -256,15 +254,69 @@ class VtigerService{
                         ]
                 ]
             );
+            // global $elementType;
+            // dd($elementType);
             $response = json_decode($response->getContent(), true);
             if($response['success']) {
                 $elements = $response['result'];
+                // dd($elements);
+                // foreach($elements as $element){
+                //      $this->convertNameToLabel($elementType, $element);
+                // }
                 $elements = array_map(function($element) {
+                    // global $elementType;
+                    // dd($elementType);
                     return $this->convertNameToLabel('Projets', $element);
                 }, $elements);
                 return $elements;
             }
              throw new Exception($response['message']);   
+     }
+    // changeLabelToName
+      public function labelToName($label){
+        $elements = $this->describe('Projets'); 
+        // dd($elements);
+        foreach($elements as $element){
+            if(array_search($label,$element) == "label"){
+                // dd($element);
+              return $element["name"];
+            }
+
+        }
+      }
+     public function retrieveBy($elementType, $fields, $values){
+     
+        // $query = "SELECT * FROM {$elementType} LIMIT 10;";
+        // $query = "SELECT * FROM {$elementType} WHERE id = '57x1614' AND name ='PR87_ADV_VLG';";
+        $arr = [];
+
+        for($i = 0; $i< count($fields); $i++){
+            $arr[$fields[$i]] = $values[$i];
+        }
+        foreach ($arr as $key => $value) {
+            $stmt[] = "$key"."="."'$value'";
+        }
+        $stmt = implode(" And ", $stmt);
+
+        $query = "SELECT * FROM {$elementType} WHERE $stmt LIMIT 10 ;";
+
+        $response = $this->client->request(
+            'GET',
+            $this->baseUrl, 
+                [
+                    'query' => [
+                        'operation' => 'query',
+                        'sessionName'=> $this->login(),
+                        'query' =>  $query
+                        ]
+                ]
+            );
+            $response = json_decode($response->getContent(), true);
+            if($response['success']) {
+                $elements = $response['result'];
+                return $elements;
+            }
+             throw new Exception($response['message']);  
      }
     
 }

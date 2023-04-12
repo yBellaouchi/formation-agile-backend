@@ -184,7 +184,7 @@ class TestServiceController extends AbstractController
         }
     }
    /**
-     * @Route("/test/service/get-all", name="app_test_delete")
+     * @Route("/test/service/get-all", name="app_test_get_all")
      */
     public function getAll(VtigerService $VtigerService, Request $request): Response
     { 
@@ -205,5 +205,45 @@ class TestServiceController extends AbstractController
         }
 
 }
+
+/**
+     * @Route("/test/service/retrieveBy", name="app_test_retrive_by")
+     */
+    public function retrieveBy(VtigerService $VtigerService, Request $request): Response
+    { 
+             try{
+            $response = new JsonResponse();
+            $elementType = $request->get('elementType');
+
+            // $filds = ['projetsid','Nom du projet'];
+            // $values = ['57x1614','PR87_ADV_VLG'];
+
+            $filds = ['Créé par','Modified By'];
+            $values = ['19x1','19x1'];
+
+            $filds_converted = [];
+            foreach($filds as $fild) {
+                $fild =  $VtigerService->labelToName($fild);
+                array_push($filds_converted,$fild);
+            }
+            
+             $retrievedBy = $VtigerService->retrieveBy($elementType,$filds_converted,$values);
+             $retrivedByArrays = [];
+            foreach($retrievedBy as $rv){
+                $element = $VtigerService->convertNameToLabel($elementType,$rv);
+                array_push($retrivedByArrays, $element);
+            }
+            $response->setData(["retrived by arrays " => $retrivedByArrays]);
+            return $response;
+        }
+        catch (Exception $exception){
+            $response->setStatusCode(500);
+            $response->setData(["message" => $exception->getMessage()]);
+            return $response;
+        }
+
+}
+
+
 
 }
