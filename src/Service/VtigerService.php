@@ -4,6 +4,8 @@ namespace App\Service;
 
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Exception;
+use Symfony\Component\Cache\Adapter\RedisAdapter;
+use Predis\Client;
 
 
 class VtigerService{
@@ -14,6 +16,7 @@ class VtigerService{
     private $accessKey;
     private $sessionName;
     private $id;
+    // private $redis;
     
     public function __construct(HttpClientInterface $client)
     {
@@ -24,11 +27,27 @@ class VtigerService{
 
         $this->sessionName = $_SERVER['SESSION_NAME'];
         $this->id = $_SERVER['ID'];
-        
+        // $this->redis = $redis;
+    }
+
+    public function getLoginByRedis(){
+        $client = RedisAdapter::createConnection('redis://localhost:6379');
+        $cache = new RedisAdapter($client);
+        $login = $cache->getItem('login');
+       
+        if ($login->get() === null) {
+            $cacheItem = $cache->getItem('login');
+            $login = $this->Login();
+            $cacheItem->set($login['sessionName']);
+            $cacheItem->expiresAfter($login['expiresAfter']);
+            $cache->save($cacheItem);
+            $login = $cache->getItem('login');
+        }
+        // dd("redis session name", $login->get());
+        return $login->get();
     }
     public function getChallenge()
-    {
-        // $cache = $this->get('cache.app');
+    {  
         $response = $this->client->request(
             'GET',
             $this->baseUrl,
@@ -40,15 +59,17 @@ class VtigerService{
         );
         $response = json_decode($response->getContent(), true);
         if($response['success']) {
-           return $response['result']['token'];
+        //    return $response['result']['token'];
+           return $response['result'];
         }
-
         throw new Exception($response['error']['message']); 
     }
     
     public function Login() {
 
-        $token = $this->getChallenge();
+        $res = $this->getChallenge();
+        // dd("get chalenge", $res);
+        
         $response = $this->client->request(
         'POST',
         $this->baseUrl, 
@@ -56,27 +77,27 @@ class VtigerService{
             'body' => [
             'operation' => 'login', 
             'username' =>$this->username,
-            'accessKey' => md5($token . $this->accessKey)
+            'accessKey' => md5($res['token'] . $this->accessKey)
             ],
          ]);
         $response->getContent();
         $response = $response->toArray();
         if($response['success']) 
         {
-            return $response['result']['sessionName'];
+            return ["sessionName" => $response['result']['sessionName'], "expiresAfter" => $res["expireTime"] - $res["serverTime"]];
         }
          throw new Exception($response['error']['message']);
     }
 
     public function retrieveById($id, $elementType)
-     {
+     {   
         $response = $this->client->request(
         'GET',
         $this->baseUrl,
         [
             'query' => [
             'operation' => 'retrieve' ,
-            'sessionName' => $this->login(),
+            'sessionName' => $this->getLoginByRedis(),
             'id' => $id
              ]
         ]
@@ -100,7 +121,7 @@ class VtigerService{
                 [
                     'query' => [
                     'operation' => 'describe' ,
-                    'sessionName' => $this->login(),
+                    'sessionName' => $this->getLoginByRedis(),
                     'elementType' => $elementType
                      ]
                 ]
@@ -166,7 +187,7 @@ class VtigerService{
                 [
                     'body' => [
                         'operation' => 'create',
-                        'sessionName'=> $this->login(),
+                        'sessionName'=> $this->getLoginByRedis(),
                         'element' => json_encode($this->convertLabelToName($obj,$elementType), true),
                         'elementType' => $elementType
                         ]
@@ -188,7 +209,7 @@ class VtigerService{
                 [
                     'query' =>  [
                     'operation' => 'listtypes' ,
-                    'sessionName' => $this->login()
+                    'sessionName' => $this->getLoginByRedis()
                      ]
                 ]
                 );
@@ -206,7 +227,7 @@ class VtigerService{
                     [
                         'body' => [
                             'operation' => 'update',
-                            'sessionName'=> $this->login(),
+                            'sessionName'=> $this->getLoginByRedis(),
                             'element' => json_encode($this->convertLabelToName($obj,$elementType), true)],
                     ]
                 );
@@ -227,7 +248,7 @@ class VtigerService{
                 [
                     'body' => [
                         'operation' => 'delete',
-                        'sessionName'=> $this->login(),
+                        'sessionName'=> $this->getLoginByRedis(),
                         'id' =>  $id 
                         ]
                 ]
@@ -249,7 +270,7 @@ class VtigerService{
                 [
                     'query' => [
                         'operation' => 'query',
-                        'sessionName'=> $this->login(),
+                        'sessionName'=> $this->getLoginByRedis(),
                         'query' =>  $query
                         ]
                 ]
@@ -259,13 +280,7 @@ class VtigerService{
             $response = json_decode($response->getContent(), true);
             if($response['success']) {
                 $elements = $response['result'];
-                // dd($elements);
-                // foreach($elements as $element){
-                //      $this->convertNameToLabel($elementType, $element);
-                // }
                 $elements = array_map(function($element) {
-                    // global $elementType;
-                    // dd($elementType);
                     return $this->convertNameToLabel('Projets', $element);
                 }, $elements);
                 return $elements;
@@ -306,7 +321,7 @@ class VtigerService{
                 [
                     'query' => [
                         'operation' => 'query',
-                        'sessionName'=> $this->login(),
+                        'sessionName'=> $this->getLoginByRedis(),
                         'query' =>  $query
                         ]
                 ]

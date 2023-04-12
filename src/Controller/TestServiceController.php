@@ -10,10 +10,12 @@ use App\Service\VtigerService;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Exception;
-use Symfony\Component\Dotenv\Dotenv;
- 
+use Symfony\Component\Cache\Adapter\RedisAdapter;
+use Psr\Cache\CacheItemPoolInterface;
+ use Predis\Client;
 class TestServiceController extends AbstractController
 {
+
     /**
      * @Route("/test/service", name="app_test_service")
      */
