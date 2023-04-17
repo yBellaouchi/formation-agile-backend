@@ -7,15 +7,16 @@
         "php": ">=7.2.5",
         "ext-ctype": "*",
         "ext-iconv": "*",
-        "doctrine/doctrine-bundle": "^2.7",
+        "doctrine/doctrine-bundle": "*",
         "doctrine/doctrine-migrations-bundle": "^3.2",
-        "doctrine/orm": "^2.12",
+        "doctrine/orm": "*",
         "firebase/php-jwt": "^6.2",
         "friendsofsymfony/rest-bundle": "^3.3",
+        "gesdinet/jwt-refresh-token-bundle": "*",
         "guzzlehttp/guzzle": "^7.5",
         "jms/serializer-bundle": "^4.0",
         "league/flysystem-sftp": "*",
-        "lexik/jwt-authentication-bundle": "^2.16",
+        "lexik/jwt-authentication-bundle": "*",
         "nelmio/cors-bundle": "^2.2",
         "oneup/flysystem-bundle": "^3",
         "phpoffice/phpspreadsheet": "^1.23",
@@ -90,7 +91,8 @@
     "scripts": {
         "auto-scripts": {
             "cache:clear": "symfony-cmd",
-            "assets:install %PUBLIC_DIR%": "symfony-cmd"
+            "assets:install %PUBLIC_DIR%": "symfony-cmd",
+            "lexik:jwt:generate-keypair": "symfony-cmd"
         },
         "post-install-cmd": [
             "@auto-scripts"

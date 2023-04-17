@@ -50,6 +50,9 @@
             "./config/packages/fos_rest.yaml"
         ]
     },
+    "gesdinet/jwt-refresh-token-bundle": {
+        "version": "v0.12.0"
+    },
     "jms/serializer-bundle": {
         "version": "4.2",
         "recipe": {

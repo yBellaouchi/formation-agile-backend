@@ -30,21 +30,6 @@ class VtigerService
         $this->cache = new RedisAdapter($redis);
     }
 
-    // public function getLoginByRedis()
-    // {
-    //     $client = RedisAdapter::createConnection('redis://localhost:6379');
-    //     $cache = new RedisAdapter($client);
-    //     $login = $cache->getItem('login');
-    //     if ($login->get() === null) {
-    //         $cacheItem = $cache->getItem('login');
-    //         $login = "";
-    //         $cacheItem->set($login['sessionName']);
-    //         $cacheItem->expiresAfter($login['expiresAfter']);
-    //         $cache->save($cacheItem);
-    //         $login = $cache->getItem('login');
-    //     }
-    //     return $login->get();
-    // }
     public function getChallenge($currentUser = null)
     {
         $response = $this->client->request(
@@ -59,7 +44,6 @@ class VtigerService
         );
         $response = json_decode($response->getContent(), true);
         if ($response['success']) {
-            //    return $response['result']['token'];
             return $response['result'];
         }
         throw new Exception($response['error']['message']);
@@ -69,7 +53,6 @@ class VtigerService
         $this->currentUser = $currentUser;
         $userNameRedisKey = str_replace("@", "", $currentUser);
         $cacheItem = $this->cache->getItem($userNameRedisKey);
-        // dd($cacheItem);
         if ($cacheItem->get() !== null) {
             $this->sessionName = $cacheItem->get();
             return $this->sessionName;
@@ -93,7 +76,6 @@ class VtigerService
             $cacheItem->set($response['result']['sessionName']);
             $cacheItem->expiresAfter($expiresAfter);
             $this->cache->save($cacheItem);
-            // $login = $this->cache->getItem('login');
             $this->sessionName = $response['result']['sessionName'];
             return $this->sessionName;
         }
@@ -295,8 +277,6 @@ class VtigerService
                 ]
             ]
         );
-        // global $elementType;
-        // dd($elementType);
         $response = json_decode($response->getContent(), true);
         if ($response['success']) {
             $elements = $response['result'];
@@ -307,14 +287,11 @@ class VtigerService
         }
         throw new Exception($response['message']);
     }
-    // changeLabelToName
     public function labelToName($label)
     {
         $elements = $this->describe('Projets');
-        // dd($elements);
         foreach ($elements as $element) {
             if (array_search($label, $element) == "label") {
-                // dd($element);
                 return $element["name"];
             }
         }
