@@ -4,7 +4,6 @@ namespace App\Controller;
 
 use App\Entity\User;
 use App\Repository\UserRepository;
-use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -68,12 +67,10 @@ class UserController extends AbstractController
             $arr[$key]['password'] = $value->getPassword();
         }
         $x = serialize($users);
-        // $z = json_encode($users);
         return new JsonResponse(
             [
                 'status' => true ,
                 'users' => $arr
-                // 'users' => serialize($x)
             ]
         );
     }

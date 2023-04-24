@@ -35,9 +35,7 @@ class TestServiceController extends AbstractController
     {
         try {
             $response = new JsonResponse();
-            $currentUser = $request->get('currentUser');
-            $accessKey = $request->get('accessKey');
-            $token = $VtigerService->login($currentUser, $accessKey);
+            $token = $VtigerService->login();
             $response->setData(["token" => $token]);
             return $response;
         } catch (Exception $exception) {
@@ -55,10 +53,9 @@ class TestServiceController extends AbstractController
             $response = new JsonResponse();
             $idElement = $request->get('id');
             $elementType = $request->get('elementType');
-            $currentUser = $request->get('currentUser');
-            $accessKey = $request->get('accessKey');
-            $VtigerService->login($currentUser, $accessKey);
-            $element = $VtigerService->retrieveById($elementType, $idElement);
+            $VtigerService->login();
+            $selectedFields = ['Nom du projet' , 'Assigné à','Created At', 'Modified At'];
+            $element = $VtigerService->retrieveById($elementType, $idElement, $selectedFields);
             $response = new JsonResponse();
             $response->setData(['element' => $element]);
                 return $response;
@@ -75,9 +72,7 @@ class TestServiceController extends AbstractController
     {
         try {
             $elementType = $request->get('elementType');
-            $currentUser = $request->get('currentUser');
-            $accessKey = $request->get('accessKey');
-            $VtigerService->login($currentUser, $accessKey);
+            $VtigerService->login();
             $res = $VtigerService->describe($elementType);
             $response = new JsonResponse($res);
                 return $response;
@@ -94,13 +89,11 @@ class TestServiceController extends AbstractController
     public function create(VtigerService $VtigerService, Request $request)
     {
         try {
+            $response = new JsonResponse();
             $data = json_decode($request->getContent(), true);
             $elementType = $data['elementType'];
             $data = $data['data'];
-            $response = new JsonResponse();
-            $currentUser = $request->get('currentUser');
-            $accessKey = $request->get('accessKey');
-            $VtigerService->login($currentUser, $accessKey);
+            $VtigerService->login();
             $res = $VtigerService->create($elementType, $data);
             $response->setData(["project added" => $res]);
             return $response;
@@ -136,9 +129,7 @@ class TestServiceController extends AbstractController
             $elementType = $data['elementType'];
             $data = $data['data'];
             $response = new JsonResponse();
-            $currentUser = $request->get('currentUser');
-            $accessKey = $request->get('accessKey');
-            $VtigerService->login($currentUser, $accessKey);
+            $VtigerService->login();
             $res = $VtigerService->edit($elementType, $data);
             $response->setData(["project edited" => $res]);
                 return $response;
@@ -156,9 +147,7 @@ class TestServiceController extends AbstractController
         try {
             $idElement = $request->get('id');
             $response = new JsonResponse();
-            $currentUser = $request->get('currentUser');
-            $accessKey = $request->get('accessKey');
-            $VtigerService->login($currentUser, $accessKey);
+            $VtigerService->login();
             $res = $VtigerService->delete($idElement);
             $response->setData(["project deleted " => $res]);
             return $response;
@@ -176,11 +165,14 @@ class TestServiceController extends AbstractController
         try {
             $response = new JsonResponse();
             $elementType = $request->get('elementType');
-            $currentUser = $request->get('currentUser');
-            $accessKey = $request->get('accessKey');
-            $VtigerService->login($currentUser, $accessKey);
-            $all = $VtigerService->getAll($elementType);
-            $response->setData(["all projects " => $all]);
+            $VtigerService->login();
+
+            $selectedFields = ['Nom du projet' , 'Assigné à','Created At', 'Modified At'];
+
+            $dateInterval = 6;
+            $dateType = 'd';
+            $all = $VtigerService->getAll($elementType, $selectedFields, $dateInterval, $dateType);
+            $response->setData(["all projects" => $all]);
             return $response;
         } catch (Exception $exception) {
             $response->setStatusCode(500);
@@ -188,7 +180,6 @@ class TestServiceController extends AbstractController
             return $response;
         }
     }
-
     /**
      * @Route("/test/service/retrieveBy", name="app_test_retrive_by")
      */
@@ -197,21 +188,26 @@ class TestServiceController extends AbstractController
         try {
             $response = new JsonResponse();
             $elementType = $request->get('elementType');
-            $currentUser = $request->get('currentUser');
-            $accessKey = $request->get('accessKey');
-            $VtigerService->login($currentUser, $accessKey);
-            // $filds = ['projetsid','Nom du projet'];
-            // $values = ['57x1614','PR87_ADV_VLG'];
+            $VtigerService->login();
+            // $fields = ['Créé par','Nom du projet'];
+            // $values = ['19x1','PR87_ADV_VLG'];
 
-            $filds = ['Créé par','Modified By'];
+            $fields = ['Créé par','Modified By'];
             $values = ['19x1','19x1'];
 
-            $filds_converted = [];
-            foreach ($filds as $fild) {
-                $fild =  $VtigerService->labelToName($fild);
-                array_push($filds_converted, $fild);
-            }
-             $retrievedBy = $VtigerService->retrieveBy($elementType, $filds_converted, $values);
+            $selectedFields = ['Nom du projet' , 'Assigné à','Created At', 'Modified At'];
+
+            $dateInterval = 2;
+            $dateType = 'm';
+
+            $retrievedBy = $VtigerService->retrieveBy(
+                $elementType,
+                $fields,
+                $values,
+                $selectedFields,
+                $dateInterval,
+                $dateType
+            );
              $retrivedByArrays = [];
             foreach ($retrievedBy as $rv) {
                 $element = $VtigerService->convertNameToLabel($elementType, $rv);

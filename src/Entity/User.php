@@ -35,6 +35,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      */
     private $password;
 
+    /**
+     * @var string The hashed password
+     * @ORM\Column(type="string")
+     */
+    private $userAccessKey;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -122,5 +128,13 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         // If you store any temporary, sensitive data on the user, clear it here
         // $this->plainPassword = null;
+    }
+
+    /**
+     * @see UserInterface
+     */
+    public function getUserAccessKey()
+    {
+        return $this->userAccessKey;
     }
 }

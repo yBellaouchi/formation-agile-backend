@@ -2,8 +2,10 @@
 
 namespace App\Service;
 
+use DateTime;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 use Symfony\Component\Cache\Adapter\RedisAdapter;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Exception;
 
 class VtigerService
@@ -17,8 +19,9 @@ class VtigerService
     private $currentUser;
     private $id;
     private $cache;
+    private $tokenStorage;
 
-    public function __construct(HttpClientInterface $client)
+    public function __construct(HttpClientInterface $client, TokenStorageInterface $tokenStorage)
     {
         $this->client = $client;
         $this->baseUrl = $_SERVER['BASE_URL'];
@@ -28,6 +31,7 @@ class VtigerService
         $this->id = $_SERVER['ID'];
         $redis = RedisAdapter::createConnection('redis://localhost:6379');
         $this->cache = new RedisAdapter($redis);
+        $this->tokenStorage = $tokenStorage;
     }
 
     public function getChallenge($currentUser = null)
@@ -48,8 +52,10 @@ class VtigerService
         }
         throw new Exception($response['error']['message']);
     }
-    public function login($currentUser, $accessKey)
+    public function login()
     {
+        $user = $this->tokenStorage->getToken()->getUser();
+        $currentUser = $user->getUsername();
         $this->currentUser = $currentUser;
         $userNameRedisKey = str_replace("@", "", $currentUser);
         $cacheItem = $this->cache->getItem($userNameRedisKey);
@@ -66,7 +72,7 @@ class VtigerService
                 'body' => [
                     'operation' => 'login',
                     'username' => $currentUser,
-                    'accessKey' => md5($res['token'] . $accessKey)
+                    'accessKey' => md5($res['token'] . $user->getUserAccessKey())
                 ],
             ]
         );
@@ -107,7 +113,7 @@ class VtigerService
         throw new Exception($response['error']['message']);
     }
 
-    public function retrieveById($elementType, $id)
+    public function retrieveById($elementType, $id, $selectedFields = [])
     {
         $response = $this->client->request(
             'GET',
@@ -122,9 +128,18 @@ class VtigerService
         );
         $response = json_decode($response->getContent(), true);
         if ($response['success']) {
-            return $this->convertNameToLabel($elementType, $response['result']);
+            if ($selectedFields == null) {
+                return  $this->convertNameToLabel($elementType, $response['result']);
+            } else {
+                $res = [];
+                $retrivedProject = $this->convertNameToLabel($elementType, $response['result']);
+                foreach ($selectedFields as $field) {
+                    $res[$field] = $retrivedProject[$field];
+                }
+                return $res;
+            }
         }
-        throw new Exception($response['message']);
+        throw new Exception($response['error']['message']);
     }
     public function describe($elementType)
     {
@@ -199,7 +214,7 @@ class VtigerService
         if ($response['success']) {
             return $this->convertNameToLabel($elementType, $response['result']);
         }
-        throw new Exception($response['message']);
+        throw new Exception($response['error']['message']);
     }
 
     public function getOperations()
@@ -218,7 +233,7 @@ class VtigerService
         if ($response['success']) {
             return $response;
         }
-        throw new Exception($response['message']);
+        throw new Exception($response['error']['message']);
     }
     public function edit($elementType, $obj)
     {
@@ -236,7 +251,7 @@ class VtigerService
         $response = json_decode($response->getContent(), true);
 
         if (false === $response["success"]) {
-            throw new Exception($response["message"]);
+            throw new Exception($response['error']["message"]);
         }
         return $this->convertNameToLabel($elementType, $response['result']);
     }
@@ -259,13 +274,19 @@ class VtigerService
         if ($response['success']) {
             return $response;
         }
-        throw new Exception($response['message']);
+        throw new Exception($response['error']['message']);
     }
 
-    public function getAll($elementType)
+    public function getAll($elementType, $selectedFields = [], $dateInterval = null, $dateType = null)
     {
-        $query = "SELECT * FROM {$elementType} LIMIT 10;";
-        // $query = "SELECT * FROM {$elementType} WHERE id = '57x26835' ;";
+        $selectedFields = ['Nom du projet' , 'Assigné à','Created At', 'Modified At'];
+        $stmt1 = $this->getStatementOfSelectedFields($selectedFields);
+
+        $stmt2 =
+        ($dateInterval != null and $dateType != null) ?
+         "where " . $this->getStatementOfDate($dateInterval, $dateType) :
+          "";
+        $query = "SELECT $stmt1 FROM {$elementType} $stmt2 ORDER BY modifiedtime DESC limit 30;";
         $response = $this->client->request(
             'GET',
             $this->baseUrl,
@@ -280,12 +301,14 @@ class VtigerService
         $response = json_decode($response->getContent(), true);
         if ($response['success']) {
             $elements = $response['result'];
+            // dd($elements);
             $elements = array_map(function ($element) {
                 return $this->convertNameToLabel('Projets', $element);
             }, $elements);
             return $elements;
         }
-        throw new Exception($response['message']);
+        // dd($query);
+        throw new Exception($response['error']['message']);
     }
     public function labelToName($label)
     {
@@ -296,21 +319,25 @@ class VtigerService
             }
         }
     }
-    public function retrieveBy($elementType, $fields, $values)
-    {
-
-        // $query = "SELECT * FROM {$elementType} LIMIT 10;";
-        // $query = "SELECT * FROM {$elementType} WHERE id = '57x1614' AND name ='PR87_ADV_VLG';";
-        $arr = [];
-
-        for ($i = 0; $i < count($fields); $i++) {
-            $arr[$fields[$i]] = $values[$i];
+    public function retrieveBy(
+        $elementType,
+        $fields,
+        $values,
+        $selectedFields = [],
+        $dateInterval = null,
+        $dateType = null
+    ) {
+        $stmt1 = $this->getStatementOfSelectedFields($selectedFields);
+        foreach ($fields as $key => $field) {
+            $stmt[] = $this->labelToName($field) . " = " . $values[$key];
         }
-        foreach ($arr as $key => $value) {
-            $stmt[] = "$key" . "=" . "'$value'";
-        }
-        $stmt = implode(" And ", $stmt);
-        $query = "SELECT * FROM {$elementType} WHERE $stmt LIMIT 10 ;";
+        $stmt2 = implode(" And ", $stmt);
+
+        $stmt3 =
+        ($dateInterval != null and $dateType != null) ?
+         "And " . $this->getStatementOfDate($dateInterval, $dateType) :
+          "";
+        $query = "SELECT $stmt1 FROM {$elementType} WHERE $stmt2 $stmt3  ORDER BY modifiedtime ASC LIMIT 20 ;";
 
         $response = $this->client->request(
             'GET',
@@ -328,6 +355,38 @@ class VtigerService
             $elements = $response['result'];
             return $elements;
         }
-        throw new Exception($response['message']);
+        throw new Exception($response['error']['message']);
+    }
+    public function getStatementOfDate($dateInterval = null, $dateType = null)
+    {
+        $date = new DateTime();
+            $mydate = $date->format('Y-m-d H:i:s');
+            $mydate = strtotime($mydate);
+        switch ($dateType) {
+            case 'd':
+                $mydate -= $dateInterval * 3600 * 24;
+                break;
+            case 'm':
+                $mydate -= $dateInterval * 3600 * 24 * 30;
+                break;
+            case 'y':
+                $mydate -=  $dateInterval * 3600 * 24 * 30 * 12;
+                break;
+        }
+            $date->setTimestamp($mydate);
+            $mydate = $date->format('Y-m-d H:i:s');
+            $stmt2 = " modifiedtime  >= '$mydate'";
+            return $stmt2;
+    }
+    public function getStatementOfSelectedFields($selectedFields)
+    {
+        if (count($selectedFields) > 0) {
+            $selectedFields = array_map(function ($element) {
+                return $this->labelToName($element);
+            }, $selectedFields);
+            return implode(", ", $selectedFields);
+        } else {
+            return "*";
+        }
     }
 }
