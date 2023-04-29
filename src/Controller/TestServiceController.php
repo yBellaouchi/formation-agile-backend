@@ -9,9 +9,24 @@ use Symfony\Component\Routing\Annotation\Route;
 use App\Service\VtigerService;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Exception;
+use Symfony\Component\Mercure\HubInterface;
+use Symfony\Component\Mercure\Publisher;
+use Symfony\Component\Mercure\Update;
 
 class TestServiceController extends AbstractController
 {
+    /**
+     * @Route("/test/service/mercure", name="app_test_service_mercure")
+     */
+    public function mercure(VtigerService $VtigerService): Response
+    {
+        $response = $this->render('/test_service/index.html.twig', [
+            'controller_name' => 'MercureController',
+        ]);
+        // $response->headers->set('set-cookie', $cookieGenerator->generate());
+        //$response->headers->set('Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJtZXJjdXJlIjp7InB1Ymxpc2giOlsiKiJdfX0.obDjwCgqtPuIvwBlTxUEmibbBf0zypKCNzNKP7Op2UM');
+        return $response;
+    }
     /**
      * @Route("/test/service", name="app_test_service")
      */
@@ -220,5 +235,19 @@ class TestServiceController extends AbstractController
             $response->setData(["message" => $exception->getMessage()]);
             return $response;
         }
+    }
+    /**
+     * @Route("/test/service/publish", name="app_test_publish")
+     */
+    public function publish(HubInterface $hub): Response
+    {
+        $update = new Update(
+            'chat',
+            json_encode(['status' => 'message reçus'])
+        );
+        // $publisher($update);
+        $hub->publish($update);
+
+        return new Response('published!');
     }
 }

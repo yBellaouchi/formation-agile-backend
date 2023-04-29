@@ -10,11 +10,50 @@
 
 <div class="example-wrapper">
     <h1>Hello {{ controller_name }}! ✅</h1>
-
+    <div id="mercure"></div>
     This friendly message is coming from:
     <ul>
         <li>Your controller at <code><a href="{{ 'C:/Users/Youness Bellaouchi/workspace/a-gile-internship/src/Controller/TestServiceController.php'|file_link(0) }}">src/Controller/TestServiceController.php</a></code></li>
         <li>Your template at <code><a href="{{ 'C:/Users/Youness Bellaouchi/workspace/a-gile-internship/templates/test_service/index.html.twig'|file_link(0) }}">templates/test_service/index.html.twig</a></code></li>
     </ul>
 </div>
+
+<div id="message"></div>
+{% endblock %}
+{% block javascripts %}
+<script>
+
+//document.addEventListener('DOMContentLoaded',function(){
+//let url = new URL('http://localhost:3000/.well-known/mercure')
+//url.searchParams.append('topic','/chat')
+  const eventSource = new EventSource("{{ mercure('chat') |escape('js')}}");
+// console.log(eventSource);
+eventSource.onmessage = event => {
+  console.log('success');
+  console.log(event);
+  console.log(event.data);
+  document.getElementById('message').innerHTML = 'done'
+  document.querySelector('h1').insertAdjacentHTML('afterend','<div class="alert alert-success">Ping </div>')
+  window.setTimeout(()=>{
+    const $alert = document.querySelector('.alert')
+    $alert.parentNode.removeChild($alert)
+  }, 2000)
+  window.addEventListener('beforunload' ,function(){
+    if (eventSource !=null){
+        eventSource.close()
+    }
+  })
+    // Will be called every time an update is published by the server
+   // console.log(JSON.parse(event.data));
+}
+eventSource.onerror = err => {
+    console.log('error');
+      //  document.querySelector('h1').insertAdjacentHTML('afterend' ,'<div class ="alert alert-succes">Ping !<div>')
+        //window.setTimeout(()=> {
+          //  const $alert = document.querySelector('.alert')
+        //$alert.parentNode.removeChild($alert)},2000)
+    //console.log('EventSource error: ', err);
+    }
+//})
+</script>
 {% endblock %}
