@@ -10,6 +10,7 @@
 
 <div class="example-wrapper">
     <h1>Hello {{ controller_name }}! ✅</h1>
+    {# <p id="message" class="alert alert-success"></p> #}
     <div id="mercure"></div>
     This friendly message is coming from:
     <ul>
@@ -18,26 +19,24 @@
     </ul>
 </div>
 
-<div id="message"></div>
 {% endblock %}
 {% block javascripts %}
 <script>
 
 //document.addEventListener('DOMContentLoaded',function(){
-//let url = new URL('http://localhost:3000/.well-known/mercure')
+let url = new URL('http://localhost:3000/.well-known/mercure?topic=chat')
 //url.searchParams.append('topic','/chat')
-  const eventSource = new EventSource("{{ mercure('chat') |escape('js')}}");
-// console.log(eventSource);
+  const eventSource = new EventSource(url);
+ console.log(eventSource);
 eventSource.onmessage = event => {
   console.log('success');
-  console.log(event);
   console.log(event.data);
-  document.getElementById('message').innerHTML = 'done'
-  document.querySelector('h1').insertAdjacentHTML('afterend','<div class="alert alert-success">Ping </div>')
+  document.querySelector('h1').insertAdjacentHTML('afterend','<div class="alert alert-success">Message reçu </div>')
   window.setTimeout(()=>{
     const $alert = document.querySelector('.alert')
     $alert.parentNode.removeChild($alert)
-  }, 2000)
+ //   document.getElementById("message").innerHTML ="message réçu"
+  }, 3000)
   window.addEventListener('beforunload' ,function(){
     if (eventSource !=null){
         eventSource.close()
@@ -47,7 +46,7 @@ eventSource.onmessage = event => {
    // console.log(JSON.parse(event.data));
 }
 eventSource.onerror = err => {
-    console.log('error');
+    console.log('error',err);
       //  document.querySelector('h1').insertAdjacentHTML('afterend' ,'<div class ="alert alert-succes">Ping !<div>')
         //window.setTimeout(()=> {
           //  const $alert = document.querySelector('.alert')

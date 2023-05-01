@@ -243,11 +243,11 @@ class TestServiceController extends AbstractController
     {
         $update = new Update(
             'chat',
-            json_encode(['status' => 'message reçus'])
+            json_encode(['status' => 'message recus'])
         );
         // $publisher($update);
         $hub->publish($update);
 
-        return new Response('published!');
+        return new JsonResponse(['status' => 'message recus']);
     }
 }
